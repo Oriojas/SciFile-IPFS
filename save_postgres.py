@@ -10,10 +10,10 @@ class DB:
                                      user=os.environ['USER'], password=os.environ['PASSWORD'])
         self.cur = self.conn.cursor()
 
-    def upload_data(self, article: str, review: str, n_rev: int, metadata: str):
+    def upload_data(self, name: str, review: str, n_rev: int, metadata: str):
         try:
-            q = "INSERT INTO scifile (article, review, n_rev, metadata) VALUES (%s, %s, %s, %s)"
-            self.cur.execute(q, (article, review, n_rev, metadata))
+            q = "INSERT INTO scifile (name, review, n_rev, metadata) VALUES (%s, %s, %s, %s)"
+            self.cur.execute(q, (name, review, n_rev, metadata))
             self.conn.commit()
             print("Data upload OK")
             state = True
@@ -28,12 +28,12 @@ class DB:
 
         return state
 
-    def query_article(self, article: str):
+    def query_article(self, name: str):
         try:
-            q = "SELECT * FROM scifile WHERE article = (%s)"
-            self.cur.execute(q, (article, ))
+            q = "SELECT * FROM scifile WHERE name = (%s)"
+            self.cur.execute(q, (name, ))
             rows = self.cur.fetchall()
-            df = pd.DataFrame(rows, columns=['article', 'review', 'n_rev', 'metadata'])
+            df = pd.DataFrame(rows, columns=['name', 'review', 'n_rev', 'metadata'])
             print("Query OK")
             print(df)
 
@@ -54,4 +54,4 @@ if __name__ == "__main__":
     #                  n_rev=1,
     #                  metadata='{"data": "data python"}')
 
-    DB().query_article(article='test')
+    DB().query_article(name='test')

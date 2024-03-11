@@ -17,7 +17,7 @@ class Ipfs:
         :param file_path: local folder
         :return:
         """
-        upload_with_tag = self.lh.upload(source=f'{file_path}{file}', tag=tag)
+        upload_with_tag = self.lh.upload(source=f'{file_path}{file}.pdf', tag=tag)
         metadata = upload_with_tag.get('data')
         print("File Upload with Tag Successful!")
         print(metadata)
