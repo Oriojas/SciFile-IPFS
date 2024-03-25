@@ -9,14 +9,16 @@ app = FastAPI()
 
 origins = ['*']
 
-app.add_middleware(CORSMiddleware,
-                   allow_origins=["*"],
-                   allow_credentials=True,
-                   allow_methods=["*"],
-                   allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 
-# TODO: esxtraer el hash completo de la transaccion
+# TODO: extraer el hash completo de la transaccion
 @app.post('/load_data_ipfs/')
 def load_data_ipfs(local_file: str, description: str):
     response = Ipfs().load_pdf(file=local_file, description=description)
@@ -50,6 +52,11 @@ def load_review(description: str, hash: str, name: str, review: str, n_rev: int)
                         metadata=f'{json_response_rev}')
 
     return json_response_rev
+
+
+@app.post('/hola_mundo/')
+def hola_mundo():
+    return 'Hola mundo FILECOIN'
 
 
 if __name__ == "__main__":
