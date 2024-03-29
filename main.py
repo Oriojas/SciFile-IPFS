@@ -1,11 +1,11 @@
 import uvicorn
-import json
 from ipfs import Ipfs
 import save_postgres as sp
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, UploadFile, Header
+
 
 app = FastAPI()
 
@@ -22,13 +22,25 @@ async def upload_file(file: UploadFile = File(...)):
     try:
         contents = await file.read()
 
-        # Guardar el archivo en local con formato PDF
         with open(f"pdf_data/{file.filename}", "wb") as output_file:
             output_file.write(contents)
 
-        return JSONResponse(content={"filename": file.filename, "content_length": len(contents)}, status_code=200)
+        print(file.filename)
+
+        response = Ipfs().load_pdf(file=file.filename)
+
+        print(JSONResponse(content={"filename": file.filename, "content_length": len(contents)}, status_code=200))
+
+        json_output = jsonable_encoder(response)
+
+        return JSONResponse(content=json_output)
+
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+        print(JSONResponse(content={"error": str(e)}, status_code=500))
+        response = {}
+
+        return JSONResponse(response)
 
 
 @app.post("/upload_meta_article/")
@@ -42,38 +54,46 @@ async def upload_meta_article(json_data: dict, x_token: str = Header(...)):
                                 status_code=200)
         print(response)
 
+        response_rev = Ipfs().load_rev(description=json_data.get('description'),
+                                       hash='0000',
+                                       name=json_data.get('name'),
+                                       review=json_data.get('description'),
+                                       n_rev=0)
+
         sp.DB().upload_data(name=json_data.get('name'),
                             review=json_data.get('description'),
                             n_rev=0,
-                            metadata=f'{json_data}')
+                            metadata=f'{response_rev}')
 
-        return json_data
+        json_output = jsonable_encoder(response_rev)
+
+        return JSONResponse(content=json_output)
 
     except Exception as e:
         response = JSONResponse(content={"error": str(e)}, status_code=500)
         print(response)
         json_data = {}
-        return json_data
+        return JSONResponse(json_data)
 
 
-@app.post('/load_review/')
-async def load_review(description: str, hash: str, name: str, review: str, n_rev: int):
-    response_rev = Ipfs().load_rev(description=description,
-                                   hash=hash,
-                                   name=name,
-                                   review=review,
-                                   n_rev=n_rev)
-
-    response_rev = dict(response_rev)
-
-    json_response_rev: object = jsonable_encoder(response_rev)
-
-    sp.DB().upload_data(name=name,
-                        review=review,
-                        n_rev=n_rev,
-                        metadata=f'{json_response_rev}')
-
-    return json_response_rev
+# @app.post('/load_review/')
+# async def load_review(description: str, hash: str, name: str, review: str, n_rev: int):
+#     response_rev = Ipfs().load_rev(description=description,
+#                                    hash=hash,
+#                                    name=name,
+#                                    review=review,
+#                                    n_rev=n_rev)
+#
+#     response_rev = dict(response_rev)
+#
+#     json_response_rev: object = jsonable_encoder(response_rev)
+#
+#     sp.DB().upload_data(name=name,
+#                         review=review,
+#                         n_rev=n_rev,
+#                         metadata=f'{json_response_rev}')
+#
+#     return json_response_rev
 
 
 @app.post('/hola_mundo/')
