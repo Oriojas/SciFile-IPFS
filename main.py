@@ -1,41 +1,63 @@
 import uvicorn
+import json
 from ipfs import Ipfs
 import save_postgres as sp
-from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, File, UploadFile, Header
 
 app = FastAPI()
 
 origins = ['*']
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware,
+                   allow_origins=origins,
+                   allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                   allow_headers=["*"], )
 
 
-# TODO: extraer el hash completo de la transaccion
-@app.post('/load_data_ipfs/')
-def load_data_ipfs(local_file: str, description: str):
-    response = Ipfs().load_pdf(file=local_file, description=description)
-    response = dict(response)
+@app.post("/upload_file/")
+async def upload_file(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
 
-    json_response: object = jsonable_encoder(response)
+        # Guardar el archivo en local con formato PDF
+        with open(f"pdf_data/{file.filename}", "wb") as output_file:
+            output_file.write(contents)
 
-    sp.DB().upload_data(name=local_file,
-                        review='Initial review',
-                        n_rev=0,
-                        metadata=f'{json_response}')
+        return JSONResponse(content={"filename": file.filename, "content_length": len(contents)}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
-    return json_response
+
+@app.post("/upload_meta_article/")
+async def upload_meta_article(json_data: dict, x_token: str = Header(...)):
+    try:
+
+        print(json_data)
+        print("Token recibido:", x_token)
+
+        response = JSONResponse(content={"status": "success", "message": "JSON data received successfully"},
+                                status_code=200)
+        print(response)
+
+        sp.DB().upload_data(name=json_data.get('name'),
+                            review=json_data.get('description'),
+                            n_rev=0,
+                            metadata=f'{json_data}')
+
+        return json_data
+
+    except Exception as e:
+        response = JSONResponse(content={"error": str(e)}, status_code=500)
+        print(response)
+        json_data = {}
+        return json_data
 
 
 @app.post('/load_review/')
-def load_review(description: str, hash: str, name: str, review: str, n_rev: int):
+async def load_review(description: str, hash: str, name: str, review: str, n_rev: int):
     response_rev = Ipfs().load_rev(description=description,
                                    hash=hash,
                                    name=name,
@@ -55,9 +77,9 @@ def load_review(description: str, hash: str, name: str, review: str, n_rev: int)
 
 
 @app.post('/hola_mundo/')
-def hola_mundo():
-    return 'Hola mundo FILECOIN'
+async def hola_mundo():
+    return 'Hola mundo BENDER'
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8090)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
