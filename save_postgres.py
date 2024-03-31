@@ -28,12 +28,12 @@ class DB:
 
         return state
 
-    def query_article(self, name: str):
+    def query_article(self):
         try:
-            q = "SELECT * FROM scifile WHERE name = (%s)"
-            self.cur.execute(q, (name, ))
+            q = "SELECT metadata FROM scifile WHERE review = 'upload' AND name != 'test2.pdf'"
+            self.cur.execute(q)
             rows = self.cur.fetchall()
-            df = pd.DataFrame(rows, columns=['name', 'review', 'n_rev', 'metadata'])
+            df = pd.DataFrame(rows, columns=['metadata'])
             print("Query OK")
             print(df)
 
